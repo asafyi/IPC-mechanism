@@ -10,3 +10,48 @@ A message slot appears in the system as a character device file which is managed
 
 For each message slot file can be multiple message channels and every channel can save a diffrent message. The channels for every minor (diffrent message slot file) are stored using the built in [linux kernel structure - Red-Black Tree](https://github.com/torvalds/linux/blob/master/Documentation/core-api/rbtree.rst) which allow switching between channels efficiently.
 
+The full details of the project are described in [project-description.pdf](project-description.pdf)
+
+## Usage
+### Loading the kernel module and creating device files
+In order to use the IPC in linux, you should compile the module and load it to the kernel:
+```bash
+make
+sudo insmod message_slot.ko
+```
+then create the device files:
+```bash
+sudo mknod /dev/<dir> c <major> <minor>
+sudo chmod o+rw /dev/<dir>
+# <dir> - device directory
+# <major> - hard-coded to 235 (can be changed in the code).
+# <minor> - number that will help distinguish between diffrent message slot files for the device.
+
+# for example:
+sudo mknod /dev/msgslot c 235 1
+sudo chmod o+rw /dev/msgslot
+```
+### Unloading the kernel module and cleanig device files
+In order to unload the module from the kernel and cleaning device files of the device:
+```bash
+sudo rmmod message_slot
+sudo rm /dev/<dir>
+# <dir> - device directory as defined in loading the kernel
+```
+### Interface for communicating with the module
+#### Message Sender
+```bash
+gcc -O3 -Wall -std=c11 message_sender.c -o message_sender.o
+./message_sender.o /dev/<dir> <channel> <msg>
+# <dir> - device directory
+# <channel> - the channel to which we want the message to be written.
+# <message> - the message.
+```
+
+#### Message Reader
+```bash
+gcc -O3 -Wall -std=c11 message_reader.c -o message_reader.o
+./message_reader.o /dev/<dir> <channel>
+# <dir> - device directory
+# <channel> - the channel through which the message should be read.
+```
